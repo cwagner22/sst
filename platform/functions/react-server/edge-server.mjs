@@ -4,7 +4,7 @@
 import {
   createRequestHandler as createNodeRequestHandler,
   readableStreamToString,
-} from "@react-router/node";
+} from "react-router";
 import { URL } from "url";
 
 /**
