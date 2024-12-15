@@ -424,7 +424,8 @@ async function generateExamplesDocs() {
           renderTdComment(module.children![0].comment?.summary!),
           ...renderRunFunction(module),
           ``,
-          `View the [full example](${config.github}/tree/dev/examples/${module.name.split("/")[0]
+          `View the [full example](${config.github}/tree/dev/examples/${
+            module.name.split("/")[0]
           }).`,
           ``,
         ];
@@ -643,23 +644,23 @@ async function generateComponentDoc(
             : []),
           ...(sdk
             ? renderFunctions(
-              sdk,
-              useModuleFunctions(sdk),
-              sdk.name === "realtime" ? { prefix: sdk.name } : undefined
-            )
+                sdk,
+                useModuleFunctions(sdk),
+                sdk.name === "realtime" ? { prefix: sdk.name } : undefined
+              )
             : []),
           ...(sdk ? renderInterfacesAtH3Level(sdk) : []),
         ];
         return lines.length
           ? [
-            ``,
-            `## SDK`,
-            ``,
-            `Use the [SDK](/docs/reference/sdk/) in your runtime to interact with your infrastructure.`,
-            ``,
-            `---`,
-            ...lines,
-          ]
+              ``,
+              `## SDK`,
+              ``,
+              `Use the [SDK](/docs/reference/sdk/) in your runtime to interact with your infrastructure.`,
+              ``,
+              `---`,
+              ...lines,
+            ]
           : [];
       })(),
       renderMethods(component),
@@ -694,6 +695,7 @@ function renderImports(outputFilePath: string) {
   return [
     ``,
     `import { Tabs, TabItem } from '@astrojs/starlight/components';`,
+    `import VideoAside from '${relativePath}/src/components/VideoAside.astro';`,
     `import Segment from '${relativePath}/src/components/tsdoc/Segment.astro';`,
     `import Section from '${relativePath}/src/components/tsdoc/Section.astro';`,
     `import NestedTitle from '${relativePath}/src/components/tsdoc/NestedTitle.astro';`,
@@ -722,6 +724,7 @@ function renderType(
     if (type.type === "templateLiteral") return renderTemplateLiteralType(type);
     if (type.type === "union") return renderUnionType(type);
     if (type.type === "array") return renderArrayType(type);
+    if (type.type === "tuple") return renderTupleType(type);
     if (type.type === "reference" && type.package === "typescript") {
       return renderTypescriptType(type);
     }
@@ -818,9 +821,12 @@ function renderType(
   function renderArrayType(type: TypeDoc.ArrayType) {
     return type.elementType.type === "union"
       ? `<code class="symbol">(</code>${renderSomeType(
-        type.elementType
-      )}<code class="symbol">)[]</code>`
+          type.elementType
+        )}<code class="symbol">)[]</code>`
       : `${renderSomeType(type.elementType)}<code class="symbol">[]</code>`;
+  }
+  function renderTupleType(type: TypeDoc.TupleType) {
+    return `${renderSomeType(type.elements[0])}<code class="symbol">[]</code>`;
   }
   function renderTypescriptType(type: TypeDoc.ReferenceType) {
     // ie. Record<string, string>
@@ -894,8 +900,9 @@ function renderType(
     }
     // types in the same doc (links to an interface)
     if (useModuleInterfaces(module).find((i) => i.name === type.name)) {
-      return `[<code class="type">${type.name
-        }</code>](#${type.name.toLowerCase()})`;
+      return `[<code class="type">${
+        type.name
+      }</code>](#${type.name.toLowerCase()})`;
     }
     // types in different doc
     const externalModule = {
@@ -913,13 +920,11 @@ function renderType(
       AppSyncResolver: "app-sync-resolver",
       Bucket: "bucket",
       BucketArgs: "bucket",
-      BucketLambdaSubscriber: "bucket-lambda-subscriber",
-      BucketQueueSubscriber: "bucket-queue-subscriber",
-      BucketTopicSubscriber: "bucket-topic-subscriber",
       Cdn: "cdn",
       CdnArgs: "cdn",
       CognitoIdentityProvider: "cognito-identity-provider",
       CognitoUserPoolClient: "cognito-user-pool-client",
+      Dynamo: "dynamo",
       DynamoLambdaSubscriber: "dynamo-lambda-subscriber",
       Efs: "efs",
       Function: "function",
@@ -927,11 +932,13 @@ function renderType(
       FunctionPermissionArgs: "function",
       Postgres: "postgres",
       PostgresArgs: "postgres",
+      Router: "router",
       Queue: "queue",
       QueueLambdaSubscriber: "queue-lambda-subscriber",
       KinesisStreamLambdaSubscriber: "kinesis-stream-lambda-subscriber",
       RealtimeLambdaSubscriber: "realtime-lambda-subscriber",
       Service: "service",
+      SnsTopic: "sns-topic",
       SnsTopicLambdaSubscriber: "sns-topic-lambda-subscriber",
       SnsTopicQueueSubscriber: "sns-topic-queue-subscriber",
       Vpc: "vpc",
@@ -954,8 +961,9 @@ function renderType(
   function renderSstSdkType(type: TypeDoc.ReferenceType) {
     // types in the same doc (links to an interface)
     if (useModuleInterfaces(module).find((i) => i.name === type.name)) {
-      return `[<code class="type">${type.name
-        }</code>](#${type.name.toLowerCase()})`;
+      return `[<code class="type">${
+        type.name
+      }</code>](#${type.name.toLowerCase()})`;
     } else if (type.name === "T") {
       return `<code class="primitive">string</code>`;
     }
@@ -1041,8 +1049,9 @@ function renderType(
         console.error(type);
         throw new Error(`Unsupported @pulumi provider input type`);
       }
-      return `[<code class="type">${type.name
-        }</code>](https://www.pulumi.com/registry/packages/${provider}/api-docs/${link}/#${type.name.toLowerCase()})`;
+      return `[<code class="type">${
+        type.name
+      }</code>](https://www.pulumi.com/registry/packages/${provider}/api-docs/${link}/#${type.name.toLowerCase()})`;
     } else if (cls.startsWith("types/")) {
       console.error(type);
       throw new Error(`Unsupported @pulumi provider class type`);
@@ -1178,7 +1187,8 @@ function renderVariables(module: TypeDoc.DeclarationReflection) {
       // nested props (ie. `.nodes`)
       ...useNestedTypes(v.type!, v.name).flatMap(
         ({ depth, prefix, subType }) => [
-          `<NestedTitle id="${useLinkHashes(module).get(subType)}" Tag="${depth === 0 ? "h4" : "h5"
+          `<NestedTitle id="${useLinkHashes(module).get(subType)}" Tag="${
+            depth === 0 ? "h4" : "h5"
           }" parent="${prefix}.">${renderName(subType)}</NestedTitle>`,
           `<Segment>`,
           `<Section type="parameters">`,
@@ -1215,7 +1225,7 @@ function renderFunctions(
       `<Section type="signature">`,
       "```ts",
       (opts?.prefix ? `${opts.prefix}.` : "") +
-      renderSignature(f.signatures![0]),
+        renderSignature(f.signatures![0]),
       "```",
       `</Section>`
     );
@@ -1353,7 +1363,7 @@ function renderMethod(
     `<Section type="signature">`,
     "```ts",
     (method.flags.isStatic ? `${useClassName(module)}.` : "") +
-    renderSignature(method.signatures![0]),
+      renderSignature(method.signatures![0]),
     "```",
     `</Section>`
   );
@@ -1408,14 +1418,16 @@ function renderProperties(module: TypeDoc.DeclarationReflection) {
       // nested props (ie. `.nodes`)
       ...useNestedTypes(g.getSignature!.type!, g.name).flatMap(
         ({ depth, prefix, subType }) => [
-          `<NestedTitle id="${useLinkHashes(module).get(subType)}" Tag="${depth === 0 ? "h4" : "h5"
+          `<NestedTitle id="${useLinkHashes(module).get(subType)}" Tag="${
+            depth === 0 ? "h4" : "h5"
           }" parent="${prefix}.">${renderName(subType)}</NestedTitle>`,
           `<Segment>`,
           `<Section type="parameters">`,
           `<InlineSection>`,
-          `**Type** ${subType.kind === TypeDoc.ReflectionKind.Property
-            ? renderType(module, subType.type!)
-            : renderType(module, subType.getSignature!.type!)
+          `**Type** ${
+            subType.kind === TypeDoc.ReflectionKind.Property
+              ? renderType(module, subType.type!)
+              : renderType(module, subType.getSignature!.type!)
           }`,
           `</InlineSection>`,
           `</Section>`,
@@ -1480,7 +1492,7 @@ function renderLinks(module: TypeDoc.DeclarationReflection) {
         linkType = link.type;
         linkType.types = linkType.types.map((t) =>
           t.type === "reference" &&
-            (t.name === "Output" || t.name === "OutputInstance")
+          (t.name === "Output" || t.name === "OutputInstance")
             ? t.typeArguments![0]
             : t
         );
@@ -1601,33 +1613,35 @@ function renderInterfacesAtH2Level(
             ({ depth, prefix, subType }) => {
               return subType.kind === TypeDoc.ReflectionKind.Method
                 ? renderMethod(module, subType, {
-                  methodTitle: `<NestedTitle id="${useLinkHashes(module).get(
-                    subType
-                  )}" Tag="${depth === 0 ? "h4" : "h5"
+                    methodTitle: `<NestedTitle id="${useLinkHashes(module).get(
+                      subType
+                    )}" Tag="${
+                      depth === 0 ? "h4" : "h5"
                     }" parent="${prefix}.">${renderName(
                       subType
                     )}</NestedTitle>`,
-                  parametersTitle: `**Parameters**`,
-                })
+                    parametersTitle: `**Parameters**`,
+                  })
                 : [
-                  `<NestedTitle id="${useLinkHashes(module).get(
-                    subType
-                  )}" Tag="${depth === 0 ? "h4" : "h5"
-                  }" parent="${prefix}.">${renderName(
-                    subType
-                  )}</NestedTitle>`,
-                  `<Segment>`,
-                  `<Section type="parameters">`,
-                  `<InlineSection>`,
-                  `**Type** ${renderType(module, subType.type!)}`,
-                  `</InlineSection>`,
-                  `</Section>`,
-                  ...renderDefaultTag(module, subType),
-                  ...renderDescription(subType),
-                  ``,
-                  ...renderExamples(subType),
-                  `</Segment>`,
-                ];
+                    `<NestedTitle id="${useLinkHashes(module).get(
+                      subType
+                    )}" Tag="${
+                      depth === 0 ? "h4" : "h5"
+                    }" parent="${prefix}.">${renderName(
+                      subType
+                    )}</NestedTitle>`,
+                    `<Segment>`,
+                    `<Section type="parameters">`,
+                    `<InlineSection>`,
+                    `**Type** ${renderType(module, subType.type!)}`,
+                    `</InlineSection>`,
+                    `</Section>`,
+                    ...renderDefaultTag(module, subType),
+                    ...renderDescription(subType),
+                    ``,
+                    ...renderExamples(subType),
+                    `</Segment>`,
+                  ];
             }
           )
         );
@@ -1635,8 +1649,9 @@ function renderInterfacesAtH2Level(
         console.debug(`   - interface method ${prop.name}`);
         lines.push(
           ...renderMethod(module, prop, {
-            methodTitle: `### ${prop.flags.isStatic ? "static " : ""
-              }${renderName(prop)}`,
+            methodTitle: `### ${
+              prop.flags.isStatic ? "static " : ""
+            }${renderName(prop)}`,
             parametersTitle: `#### Parameters`,
           })
         );
@@ -1675,7 +1690,8 @@ function renderInterfacesAtH3Level(module: TypeDoc.DeclarationReflection) {
       // nested props (ie. `.domain`, `.transform`)
       ...useNestedTypes(int.type!, int.name).flatMap(
         ({ depth, prefix, subType }) => [
-          `<NestedTitle id="${useLinkHashes(module).get(subType)}" Tag="${depth === 0 ? "h4" : "h5"
+          `<NestedTitle id="${useLinkHashes(module).get(subType)}" Tag="${
+            depth === 0 ? "h4" : "h5"
           }" parent="${prefix}.">${renderName(subType)}</NestedTitle>`,
           `<Segment>`,
           `<Section type="parameters">`,
@@ -1715,7 +1731,11 @@ function renderSignatureArg(prop: TypeDoc.ParameterReflection) {
     );
   }
 
-  return `${prop.name}${prop.flags.isOptional || prop.defaultValue ? "?" : ""}`;
+  return [
+    prop.type?.type === "tuple" ? "..." : "",
+    prop.name,
+    prop.flags.isOptional || prop.defaultValue ? "?" : "",
+  ].join("");
 }
 
 function renderDescription(
@@ -1729,11 +1749,11 @@ function renderDescription(
   const str = renderTdComment(prop.comment?.summary);
   return opts?.indent
     ? [
-      str
-        .split("\n")
-        .map((line) => `  ${line}`)
-        .join("\n"),
-    ]
+        str
+          .split("\n")
+          .map((line) => `  ${line}`)
+          .join("\n"),
+      ]
     : [str];
 }
 
@@ -1752,12 +1772,12 @@ function renderDefaultTag(
     // Otherwise render it as a comment ie. No domains configured
     defaultTag.content.length === 1 && defaultTag.content[0].kind === "code"
       ? `**Default** ${renderType(module, {
-        type: "intrinsic",
-        name: defaultTag.content[0].text
-          .replace(/`/g, "")
-          .replace(/{/g, "&lcub;")
-          .replace(/}/g, "&rcub;"),
-      } as TypeDoc.SomeType)}`
+          type: "intrinsic",
+          name: defaultTag.content[0].text
+            .replace(/`/g, "")
+            .replace(/{/g, "&lcub;")
+            .replace(/}/g, "&rcub;"),
+        } as TypeDoc.SomeType)}`
       : `**Default** ${renderTdComment(defaultTag.content)}`,
     `</InlineSection>`,
   ];
@@ -1913,7 +1933,8 @@ function useClassMethods(module: TypeDoc.DeclarationReflection) {
         !c.flags.isExternal &&
         !c.flags.isPrivate &&
         c.signatures &&
-        !c.signatures[0].comment?.modifierTags.has("@internal")
+        !c.signatures[0].comment?.modifierTags.has("@internal") &&
+        !c.signatures[0].comment?.blockTags.find((t) => t.tag === "@deprecated")
     );
 }
 function useClassMethodByName(
@@ -1966,10 +1987,10 @@ function useNestedTypes(
         : []),
       ...(subType.kind === TypeDoc.ReflectionKind.Accessor
         ? useNestedTypes(
-          subType.getSignature?.type!,
-          `${prefix}.${subType.name}`,
-          depth + 1
-        )
+            subType.getSignature?.type!,
+            `${prefix}.${subType.name}`,
+            depth + 1
+          )
         : []),
     ]);
   }
@@ -1983,7 +2004,7 @@ function useNestedTypes(
 
 function configureLogger() {
   if (process.env.DEBUG) return;
-  console.debug = () => { };
+  console.debug = () => {};
 }
 
 function patchCode() {
@@ -2038,9 +2059,9 @@ function patchCode() {
         /include\?\: \{[^}]*\}/,
         `include?: (AwsPermission | CloudflareBinding)`
       ) +
-    "\ntype Constructor = {};\n" +
-    "\ntype AwsPermission = {};\n" +
-    "\ntype CloudflareBinding = {};\n"
+      "\ntype Constructor = {};\n" +
+      "\ntype AwsPermission = {};\n" +
+      "\ntype CloudflareBinding = {};\n"
   );
 }
 
@@ -2090,10 +2111,8 @@ async function buildComponents() {
       "../platform/src/components/aws/app-sync-data-source.ts",
       "../platform/src/components/aws/app-sync-function.ts",
       "../platform/src/components/aws/app-sync-resolver.ts",
+      "../platform/src/components/aws/auth.ts",
       "../platform/src/components/aws/bucket.ts",
-      "../platform/src/components/aws/bucket-lambda-subscriber.ts",
-      "../platform/src/components/aws/bucket-queue-subscriber.ts",
-      "../platform/src/components/aws/bucket-topic-subscriber.ts",
       "../platform/src/components/aws/cluster.ts",
       "../platform/src/components/aws/cluster-v1.ts",
       "../platform/src/components/aws/cognito-identity-pool.ts",

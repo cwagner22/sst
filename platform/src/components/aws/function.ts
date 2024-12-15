@@ -258,13 +258,14 @@ export interface FunctionArgs {
    * @example
    * ```js
    * {
-   *   runtime: "nodejs18.x"
+   *   runtime: "nodejs22.x"
    * }
    * ```
    */
   runtime?: Input<
     | "nodejs18.x"
     | "nodejs20.x"
+    | "nodejs22.x"
     | "provided.al2023"
     | "python3.9"
     | "python3.10"
@@ -1244,6 +1245,10 @@ export class Function extends Component implements Link.Linkable {
       }),
   );
 
+  private static readonly appsync = lazy(() =>
+    rpc.call("Provider.Aws.Appsync", {}),
+  );
+
   constructor(
     name: string,
     args: FunctionArgs,
@@ -1382,19 +1387,27 @@ export class Function extends Component implements Link.Linkable {
         dev,
         bootstrapData,
         Function.encryptionKey().base64,
-        args.bundle,
-      ]).apply(([environment, dev, bootstrap, key, bundle]) => {
+        args.link,
+      ]).apply(async ([environment, dev, bootstrap, key, link]) => {
         const result = environment ?? {};
         result.SST_RESOURCE_App = JSON.stringify({
           name: $app.name,
           stage: $app.stage,
         });
+        for (const linkable of link || []) {
+          if (!Link.isLinkable(linkable)) continue;
+          const def = linkable.getSSTLink();
+          for (const item of def.include || []) {
+            if (item.type === "environment") Object.assign(result, item.env);
+          }
+        }
         result.SST_KEY = key;
         result.SST_KEY_FILE = "resource.enc";
         if (dev) {
+          const appsync = await Function.appsync();
           result.SST_REGION = process.env.SST_AWS_REGION!;
-          result.SST_APPSYNC_HTTP = process.env.SST_APPSYNC_HTTP!;
-          result.SST_APPSYNC_REALTIME = process.env.SST_APPSYNC_REALTIME!;
+          result.SST_APPSYNC_HTTP = appsync.http;
+          result.SST_APPSYNC_REALTIME = appsync.realtime;
           result.SST_FUNCTION_ID = name;
           result.SST_APP = $app.name;
           result.SST_STAGE = $app.stage;
@@ -1941,7 +1954,7 @@ export class Function extends Component implements Link.Linkable {
 
           // Calculate hash of the zip file
           const hash = crypto.createHash("sha256");
-          hash.update(await fs.promises.readFile(zipPath));
+          hash.update(await fs.promises.readFile(zipPath, "utf-8"));
           const hashValue = hash.digest("hex");
           const assetBucket = region.apply((region) =>
             bootstrap.forRegion(region).then((d) => d.asset),

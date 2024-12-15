@@ -3,6 +3,8 @@ import starlight from "@astrojs/starlight";
 import sitemap from "@astrojs/sitemap";
 import config from "./config";
 import sst from "astro-sst";
+import { rehypeHeadingIds } from "@astrojs/markdown-remark";
+import rehypeAutolinkHeadings from "rehype-autolink-headings";
 
 const sidebar = [
   { label: "Intro", slug: "docs" },
@@ -10,6 +12,7 @@ const sidebar = [
   { label: "Enterprise", slug: "docs/enterprise" },
   {
     label: "Get Started",
+    collapsed: true,
     items: [
       { label: "Bun", slug: "docs/start/aws/bun" },
       { label: "Nuxt", slug: "docs/start/aws/nuxt" },
@@ -51,6 +54,7 @@ const sidebar = [
   },
   {
     label: "How to",
+    collapsed: true,
     items: [
       { label: "AWS Accounts", slug: "docs/aws-accounts" },
       { label: "IAM Credentials", slug: "docs/iam-credentials" },
@@ -65,10 +69,12 @@ const sidebar = [
   },
   {
     label: "AWS",
+    collapsed: true,
     items: [
       "docs/component/aws/efs",
       "docs/component/aws/vpc",
       "docs/component/aws/cron",
+      "docs/component/aws/auth",
       "docs/component/aws/nuxt",
       "docs/component/aws/astro",
       "docs/component/aws/redis",
@@ -100,6 +106,7 @@ const sidebar = [
   },
   {
     label: "Cloudflare",
+    collapsed: true,
     items: [
       "docs/component/cloudflare/kv",
       "docs/component/cloudflare/d1",
@@ -109,6 +116,7 @@ const sidebar = [
   },
   {
     label: "Reference",
+    collapsed: true,
     items: [
       "docs/reference/cli",
       "docs/reference/sdk",
@@ -148,7 +156,6 @@ const sidebar = [
       "docs/component/aws/apigatewayv1-authorizer",
       "docs/component/aws/apigatewayv2-authorizer",
       "docs/component/aws/queue-lambda-subscriber",
-      "docs/component/aws/bucket-lambda-subscriber",
       "docs/component/aws/sns-topic-queue-subscriber",
       "docs/component/aws/dynamo-lambda-subscriber",
       "docs/component/aws/realtime-lambda-subscriber",
@@ -223,6 +230,7 @@ export default defineConfig({
         "./src/styles/lander.css",
         "./src/styles/markdown.css",
         "./src/styles/tsdoc.css",
+        "./src/styles/heading.css",
       ],
       social: {
         "x.com": config.twitter,
@@ -246,7 +254,7 @@ export default defineConfig({
           attrs: {
             src: "https://widget.kapa.ai/kapa-widget.bundle.js",
             "data-website-id": "6853540a-5c1e-4de3-9e2f-b893b6b825a8",
-            "data-project-name": "Ion",
+            "data-project-name": "SST",
             "data-project-color": "#E27152",
             "data-modal-header-bg-color": "white",
             "data-button-hide": "true",
@@ -291,4 +299,15 @@ export default defineConfig({
       sidebar,
     }),
   ],
+  markdown: {
+    rehypePlugins: [
+      rehypeHeadingIds,
+      [
+        rehypeAutolinkHeadings,
+        {
+          behavior: "wrap",
+        },
+      ],
+    ],
+  },
 });

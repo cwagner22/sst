@@ -6,6 +6,7 @@ export default $config({
       name: "aws-hono",
       removal: input?.stage === "production" ? "retain" : "remove",
       home: "aws",
+      protect: true,
     };
   },
   async run() {
@@ -15,5 +16,10 @@ export default $config({
       link: [bucket],
       handler: "src/index.handler",
     });
-  }
+    new sst.aws.Function("Hono3", {
+      url: true,
+      link: [bucket],
+      handler: "src/index.handler",
+    });
+  },
 });
