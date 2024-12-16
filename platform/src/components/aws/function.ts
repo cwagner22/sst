@@ -2045,7 +2045,7 @@ export class Function extends Component implements Link.Linkable {
               memorySize: memory.apply((memory) => toMBs(memory)),
               ephemeralStorage: { size: storage.apply((v) => toMBs(v)) },
               environment: {
-                variables: environment,
+                // variables: environment,
               },
               architectures: [architecture],
               loggingConfig: logging && {
